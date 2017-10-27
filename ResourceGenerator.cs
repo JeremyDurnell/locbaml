@@ -292,7 +292,45 @@ namespace BamlLocalization
                 targetAssemblyNameObj,                  // name of the assembly
                 AssemblyBuilderAccess.RunAndSave,       // access rights
                 outputAssemblyDir                       // storage dir
-                );            
+                );
+
+            // Add assembly info, trying to preserver original values as close as possible
+            Action<Type, string> AddCustomStringAttribute = (Type type, string content) =>
+            {
+                if (string.IsNullOrEmpty(content)) { return; }
+                ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(string) });
+                targetAssemblyBuilder.SetCustomAttribute(new CustomAttributeBuilder(ctor, new object[] { content }));
+            };
+            bool hasInformationalVersionAttr = false;
+            object[] attrs = srcAsm.GetCustomAttributes(false);
+            foreach (var attr in attrs)
+            {
+                if (attr is AssemblyCompanyAttribute cmp) { AddCustomStringAttribute(attr.GetType(), cmp.Company); continue; }
+                if (attr is AssemblyCopyrightAttribute copy) { AddCustomStringAttribute(attr.GetType(), copy.Copyright); continue; }
+                if (attr is AssemblyDescriptionAttribute da) { AddCustomStringAttribute(attr.GetType(), da.Description); continue; }
+                if (attr is AssemblyFileVersionAttribute fva)
+                {
+                    AddCustomStringAttribute(attr.GetType(), fva.Version);
+                    if (!hasInformationalVersionAttr)
+                    {
+                        // Also set AssemblyInformationalVersionAttribute, if not set already.
+                        // The unmanaged ProductVersion is taken from that attribute.
+                        AddCustomStringAttribute(typeof(AssemblyInformationalVersionAttribute), fva.Version);
+                    }
+                    continue;
+                }
+                if (attr is AssemblyInformationalVersionAttribute iva)
+                {
+                    AddCustomStringAttribute(attr.GetType(), iva.InformationalVersion);
+                    hasInformationalVersionAttr = true;
+                    continue;
+                }
+                if (attr is AssemblyProductAttribute pa) { AddCustomStringAttribute(attr.GetType(), pa.Product); continue; }
+                if (attr is AssemblyTitleAttribute ta) { AddCustomStringAttribute(attr.GetType(), ta.Title); continue; }
+                if (attr is AssemblyTrademarkAttribute tm) { AddCustomStringAttribute(attr.GetType(), tm.Trademark); continue; }
+                if (attr is AssemblyVersionAttribute va) { AddCustomStringAttribute(attr.GetType(), va.Version); continue; }
+            }
+            targetAssemblyBuilder.DefineVersionInfoResource();
 
             // we create a module builder for embeded resource modules
             ModuleBuilder moduleBuilder = targetAssemblyBuilder.DefineDynamicModule(
