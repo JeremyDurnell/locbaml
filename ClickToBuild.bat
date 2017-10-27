@@ -1,4 +1,4 @@
-"%windir%\Microsoft.NET\Framework64\v4.0.30319\msbuild.exe" locbaml.sln /p:Configuration=Release
+"%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin\MSBuild.exe" locbaml.sln /p:Configuration=Release
 
 rd obj /s /q
 pause
